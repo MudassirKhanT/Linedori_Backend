@@ -5,13 +5,29 @@ import jwt from "jsonwebtoken";
 export const registerAdmin = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    const existingAdmin = await User.findOne({ role: "admin" });
-    if (existingAdmin) return res.status(400).json({ message: "Admin already exists" });
+
+    // ✅ Check if email already exists (important)
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: hashedPassword, role: "admin" });
-    await user.save();
-    res.status(201).json({ message: "Admin registered successfully" });
+
+    const admin = new User({
+      username,
+      email,
+      password: hashedPassword,
+      role: "admin",
+    });
+
+    await admin.save();
+
+    res.status(201).json({
+      message: "Admin registered successfully",
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error registering admin" });
   }
 };
