@@ -68,19 +68,3 @@ export const deleteTeamMember = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// export const deleteTeamMember = async (req, res) => {
-//   try {
-//     const member = await Team.findById(req.params.id);
-
-//     if (member?.image) {
-//       const filePath = member.image.replace("/", "");
-//       fs.existsSync(filePath) && fs.unlinkSync(filePath);
-//     }
-
-//     await Team.findByIdAndDelete(req.params.id);
-//     res.json({ message: "Team member deleted successfully" });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
