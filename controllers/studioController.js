@@ -21,13 +21,25 @@ export const getStudioById = async (req, res) => {
     res.status(500).json({ message: "Error fetching studio" });
   }
 };
-
-/* ---------- CREATE ---------- */
 export const createStudio = async (req, res) => {
   try {
-    if (req.fileValidationError) return res.status(400).json({ message: req.fileValidationError });
+    if (req.fileValidationError) {
+      return res.status(400).json({
+        success: false,
+        code: "FILE_VALIDATION_ERROR",
+        message: req.fileValidationError,
+      });
+    }
 
     const { title, description, location, contact, email } = req.body;
+
+    if (!title?.trim()) {
+      return res.status(400).json({
+        success: false,
+        code: "VALIDATION_ERROR",
+        message: "Studio title is required",
+      });
+    }
 
     const studio = new Studio({
       title,
@@ -39,24 +51,47 @@ export const createStudio = async (req, res) => {
     });
 
     await studio.save();
-    res.status(201).json({ message: "Studio created", studio });
-  } catch {
-    res.status(500).json({ message: "Error creating studio" });
+
+    return res.status(201).json({
+      success: true,
+      message: "Studio created successfully",
+      studio,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: "Failed to create studio",
+    });
   }
 };
 
-/* ---------- UPDATE (REPLACE MEDIA) ---------- */
 export const updateStudio = async (req, res) => {
   try {
-    if (req.fileValidationError) return res.status(400).json({ message: req.fileValidationError });
+    if (req.fileValidationError) {
+      return res.status(400).json({
+        success: false,
+        code: "FILE_VALIDATION_ERROR",
+        message: req.fileValidationError,
+      });
+    }
 
     const studio = await Studio.findById(req.params.id);
-    if (!studio) return res.status(404).json({ message: "Studio not found" });
+    if (!studio) {
+      return res.status(404).json({
+        success: false,
+        code: "STUDIO_NOT_FOUND",
+        message: "Studio not found",
+      });
+    }
 
-    // delete old media if new uploaded
+    // delete old image if new uploaded
     if (req.file && studio.image) {
       const oldPath = studio.image.replace("/", "");
-      fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
     }
 
     Object.assign(studio, req.body);
@@ -66,26 +101,121 @@ export const updateStudio = async (req, res) => {
     }
 
     await studio.save();
-    res.json({ message: "Studio updated", studio });
-  } catch {
-    res.status(500).json({ message: "Error updating studio" });
+
+    return res.json({
+      success: true,
+      message: "Studio updated successfully",
+      studio,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: "Failed to update studio",
+    });
   }
 };
 
-/* ---------- DELETE ---------- */
 export const deleteStudio = async (req, res) => {
   try {
     const studio = await Studio.findById(req.params.id);
-    if (!studio) return res.status(404).json({ message: "Studio not found" });
+
+    if (!studio) {
+      return res.status(404).json({
+        success: false,
+        code: "STUDIO_NOT_FOUND",
+        message: "Studio not found",
+      });
+    }
 
     if (studio.image) {
-      const path = studio.image.replace("/", "");
-      fs.existsSync(path) && fs.unlinkSync(path);
+      const imagePath = studio.image.replace("/", "");
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     }
 
     await studio.deleteOne();
-    res.json({ message: "Studio deleted" });
-  } catch {
-    res.status(500).json({ message: "Error deleting studio" });
+
+    return res.json({
+      success: true,
+      message: "Studio deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: "Failed to delete studio",
+    });
   }
 };
+
+// /* ---------- CREATE ---------- */
+// export const createStudio = async (req, res) => {
+//   try {
+//     if (req.fileValidationError) return res.status(400).json({ message: req.fileValidationError });
+
+//     const { title, description, location, contact, email } = req.body;
+
+//     const studio = new Studio({
+//       title,
+//       description,
+//       location,
+//       contact,
+//       email,
+//       image: req.file ? `/${req.file.path.replace(/\\/g, "/")}` : undefined,
+//     });
+
+//     await studio.save();
+//     res.status(201).json({ message: "Studio created", studio });
+//   } catch {
+//     res.status(500).json({ message: "Error creating studio" });
+//   }
+// };
+
+// /* ---------- UPDATE (REPLACE MEDIA) ---------- */
+// export const updateStudio = async (req, res) => {
+//   try {
+//     if (req.fileValidationError) return res.status(400).json({ message: req.fileValidationError });
+
+//     const studio = await Studio.findById(req.params.id);
+//     if (!studio) return res.status(404).json({ message: "Studio not found" });
+
+//     // delete old media if new uploaded
+//     if (req.file && studio.image) {
+//       const oldPath = studio.image.replace("/", "");
+//       fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
+//     }
+
+//     Object.assign(studio, req.body);
+
+//     if (req.file) {
+//       studio.image = `/${req.file.path.replace(/\\/g, "/")}`;
+//     }
+
+//     await studio.save();
+//     res.json({ message: "Studio updated", studio });
+//   } catch {
+//     res.status(500).json({ message: "Error updating studio" });
+//   }
+// };
+
+// /* ---------- DELETE ---------- */
+// export const deleteStudio = async (req, res) => {
+//   try {
+//     const studio = await Studio.findById(req.params.id);
+//     if (!studio) return res.status(404).json({ message: "Studio not found" });
+
+//     if (studio.image) {
+//       const path = studio.image.replace("/", "");
+//       fs.existsSync(path) && fs.unlinkSync(path);
+//     }
+
+//     await studio.deleteOne();
+//     res.json({ message: "Studio deleted" });
+//   } catch {
+//     res.status(500).json({ message: "Error deleting studio" });
+//   }
+// };
